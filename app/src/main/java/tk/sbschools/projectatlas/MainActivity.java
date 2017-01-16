@@ -168,5 +168,6 @@ public class MainActivity extends AppCompatActivity {
     }
     public void disTraveledReset(View v){
         disTraveled = 0.0;
+        System.err.println("Location Reset");
     }
 }
