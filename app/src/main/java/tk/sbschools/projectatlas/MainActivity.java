@@ -25,12 +25,13 @@ import android.widget.ProgressBar;
 import org.w3c.dom.Text;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    int MYACTIVITY_FLOC_REQCODE = 01;
-    TextView locText, addrText,distanceDisp;
+    int MYACTIVITY_FLOC_REQCODE = 10;
+    TextView locText, addrText, distanceDisp;
     ProgressBar progressLoc, progressAddr;
     ImageView disp;
     List<Address> geoCodeResults;
@@ -40,15 +41,17 @@ public class MainActivity extends AppCompatActivity {
     long timeElaspedLocation;
     int gpsCalibrationDelay;
     ArrayList<Location> pastLocations;
+    LocationManager locManager;
+    LocationListener locationListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        setTitle("Project Atlas- V0.3 Alpha - Kevin S");
+        setTitle("Project Atlas- V0.4 Alpha - Kevin S");
         setContentView(R.layout.activity_main);
 
-        final LocationManager locManager = (LocationManager)
+        locManager = (LocationManager)
                 this.getSystemService(Context.LOCATION_SERVICE);
         final Geocoder geocoder = new Geocoder(this);
 
@@ -63,17 +66,17 @@ public class MainActivity extends AppCompatActivity {
         progressAddr.getIndeterminateDrawable().setColorFilter(Color.parseColor("#00FF00"),
                 android.graphics.PorterDuff.Mode.SRC_ATOP);
 
-        distanceDisp = (TextView)findViewById(R.id.textView_distance);
+        distanceDisp = (TextView) findViewById(R.id.textView_distance);
         disp = (ImageView) findViewById(R.id.imageView_display);
         disp.setBackgroundResource(R.drawable.spinningglobe);
         geoAnime = (AnimationDrawable) disp.getBackground();
         geoAnime.start();
         disTraveled = 0;
 
-        LocationListener locationListener = new LocationListener() {
+        locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                if(gpsCalibrationDelay <= 0) {
+                if (gpsCalibrationDelay <= 0) {
                     locText.setText("(" + (double) location.getLatitude() + ", "
                             + (double) location.getLongitude() + ")");
                     findViewById(R.id.loadingPanel).setVisibility(View.GONE);
@@ -87,31 +90,43 @@ public class MainActivity extends AppCompatActivity {
                             + geoCodeResults.get(0).getAddressLine(1) + ", "
                             + geoCodeResults.get(0).getAddressLine(2));
                     findViewById(R.id.loadingPanelTwo).setVisibility(View.GONE);//Swap and Fix to GPS
-                    if(location.getAccuracy() <= 25 || (location.getAccuracy() < lastKnown.getAccuracy() && lastKnown.getAccuracy() <= 25)){
-                        if(location.distanceTo(lastKnown) >= ((location.getAccuracy() + lastKnown.getAccuracy())*0.8)) { //.8 for some overlap lenience
+                    if (location.getAccuracy() <= 25 || (location.getAccuracy() < lastKnown.getAccuracy() && lastKnown.getAccuracy() <= 25)) {
+                        if (location.distanceTo(lastKnown) >= ((location.getAccuracy() + lastKnown.getAccuracy()) * 0.8)) { //.8 for some overlap lenience
                             disTraveled += location.distanceTo(lastKnown);
                             lastKnown = location;
                         }
-                    }else{
-                        locText.setText(locText.getText()+"*");
+                    } else {
+                        locText.setText(locText.getText() + "*");
                     }
-                    distanceDisp.setText("Distance Traveled: " + disTraveled);
-                }else{
+                    DecimalFormat numberFormat = new DecimalFormat("#.00");
+                    distanceDisp.setText("Distance Traveled: " + numberFormat.format(disTraveled));
+                } else {
                     gpsCalibrationDelay--;
-                    if(location.getAccuracy() <= 25){
+                    if (location.getAccuracy() <= 20) {
                         lastKnown = location;
                         gpsCalibrationDelay--;
                         timeElaspedLocation = SystemClock.elapsedRealtime();
-                    }else{
+                    } else {
                         gpsCalibrationDelay++;
                     }
                     locText.setText("Location: Calibrating...");
                 }
+                System.err.println(location.toString());
 
-                                                                                                    }@Override
-            public void onStatusChanged(String provider, int status, Bundle extras)                 {}@Override
-            public void onProviderEnabled(String provider)                                          {}@Override
-            public void onProviderDisabled(String provider)                                         {}};
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+            }
+        };
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
@@ -121,19 +136,37 @@ public class MainActivity extends AppCompatActivity {
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
-            System.err.println("Does not have perms.")                                              ;
+            System.err.println("Does not have perms.");
             ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},MYACTIVITY_FLOC_REQCODE) ;
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                    MYACTIVITY_FLOC_REQCODE)                                                        ;
-            return                                                                                  ;}
-        locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener)  ; //Swap and Fix to GPS
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, MYACTIVITY_FLOC_REQCODE);
+            return;
+        }
+        locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener); //Swap and Fix to GPS
         lastKnown = locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         //locationManager.removeUpdates(LocationManager.NETWORK_PROVIDER);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults)                             {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)                    ;}}
+                                           @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case 10: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        System.err.println("Does not have perms.");
+                        ActivityCompat.requestPermissions(this,
+                                new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET}, MYACTIVITY_FLOC_REQCODE);
+                        return;
+                    }
+                    locManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
+                }
+                return;
+            }
+        }
+    }
+    public void disTraveledReset(View v){
+        disTraveled = 0.0;
+    }
+}

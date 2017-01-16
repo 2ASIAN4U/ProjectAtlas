@@ -93,4 +93,17 @@
         android:textColor="@android:color/holo_green_light"
         android:typeface="monospace" />
 
+    <Button
+        android:text="Reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/button"
+        android:textSize="12sp"
+        android:minHeight="25dp"
+        android:minWidth="50dip"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:background="#00ff00"
+        android:onClick="disTraveledReset" />
+
 </RelativeLayout>
